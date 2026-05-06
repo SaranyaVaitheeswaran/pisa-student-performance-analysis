@@ -564,6 +564,104 @@ def chart_world_map(df_2022):
     save_figure(fig, "8_world_map")
     plt.close(fig)
 
+# ---------------------------------------------------------------
+# Chart 9: COVID Impact - Score Change 2018 to 2022
+# ---------------------------------------------------------------
+def chart_covid_impact(df_2022, df_2018):
+    """Slope chart showing global mean score change from 2018 to 2022."""
+    print("\n[9/9] COVID impact - score change 2018 to 2022...")
+
+    subjects = ["Math", "Reading", "Science"]
+    means_2018 = [df_2018[f"{s}_MeanScore"].mean() for s in subjects]
+    means_2022 = [df_2022[f"{s}_MeanScore"].mean() for s in subjects]
+    drops = [m22 - m18 for m18, m22 in zip(means_2018, means_2022)]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x_2018, x_2022 = 0, 1
+    colors_subj = [COLORS["math"], COLORS["reading"], COLORS["science"]]
+
+    for i, subj in enumerate(subjects):
+        ax.plot(
+            [x_2018, x_2022],
+            [means_2018[i], means_2022[i]],
+            marker="o",
+            markersize=12,
+            linewidth=2.5,
+            color=colors_subj[i],
+            label=subj,
+        )
+        # Label score values at each end
+        # Use vertical offsets to avoid overlap when 2018 values are close
+        offset_2018 = {0: 8, 1: 0, 2: -8}.get(i, 0)  # Math up, Reading mid, Science down
+        ax.annotate(
+            f"{means_2018[i]:.1f}",
+            (x_2018, means_2018[i]),
+            xytext=(-12, offset_2018),
+            textcoords="offset points",
+            ha="right",
+            va="center",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax.annotate(
+            f"{means_2022[i]:.1f}",
+            (x_2022, means_2022[i]),
+            xytext=(12, 0),
+            textcoords="offset points",
+            ha="left",
+            va="center",
+            fontsize=10,
+            fontweight="bold",
+        )
+        # Drop annotation in the middle
+        mid_x = (x_2018 + x_2022) / 2
+        mid_y = (means_2018[i] + means_2022[i]) / 2
+        ax.annotate(
+            f"{drops[i]:+.1f}",
+            (mid_x, mid_y),
+            xytext=(0, 14),
+            textcoords="offset points",
+            ha="center",
+            fontsize=10,
+            color=COLORS["accent"],
+            fontweight="bold",
+            bbox=dict(
+                boxstyle="round,pad=0.3",
+                fc="white",
+                ec=COLORS["accent"],
+                alpha=0.9,
+            ),
+        )
+
+    ax.set_xticks([x_2018, x_2022])
+    ax.set_xticklabels(["PISA 2018", "PISA 2022"], fontsize=12, fontweight="bold")
+    ax.set_xlim(-0.35, 1.35)
+    ax.set_ylabel("Global Mean Score")
+    ax.set_title(
+        "Global Score Change Between 2018 and 2022 (COVID Impact)",
+        fontweight="bold",
+        pad=12,
+    )
+    ax.legend(title="Subject", loc="lower left")
+    ax.grid(axis="y", alpha=0.3)
+
+    # Reference text
+    ax.text(
+        0.5,
+        0.02,
+        "Note: ~20 PISA points ≈ one year of learning",
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=9,
+        style="italic",
+        alpha=0.7,
+    )
+
+    fig.tight_layout()
+    save_figure(fig, "9_covid_impact")
+    plt.close(fig)
+
 
 # ---------------------------------------------------------------
 # Main
@@ -582,9 +680,10 @@ def main():
     chart_correlation_heatmap(df_2022)
     chart_score_distribution(df_2022)
     chart_world_map(df_2022)
+    chart_covid_impact(df_2022, df_2018)
 
     print("\n" + "=" * 50)
-    print("All charts generated successfully.")
+    print("All 9 charts generated successfully.")
     print(f"Output: {os.path.join(PROJECT_ROOT, 'output', 'figures')}")
     print("=" * 50)
 

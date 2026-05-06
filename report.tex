@@ -1,0 +1,319 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% ---------- Packages ----------
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\graphicspath{{figures/}}
+
+\begin{document}
+
+% =============================================================
+% TITLE AND AUTHORS
+% =============================================================
+\title{Visual Analytics of Student Performance, Well-Being, and School Climate: An Exploration of PISA 2022 and 2018}
+
+\author{
+\IEEEauthorblockN{Saranya Vaitheeswaran, Shashank Ranjan, Ani Taraiya, Yash Shevkar, Rohini Ramasheshu}
+\IEEEauthorblockA{
+Group 2 \\
+DAT 230: Data Visualization \\
+Instructor: Prof. Shih-Yu Chang \\
+San Jose State University \\
+Spring 2026
+}
+}
+
+\maketitle
+
+% =============================================================
+% ABSTRACT
+% =============================================================
+\begin{abstract}
+This project investigates global patterns in student academic performance, well-being, and school climate using the Programme for International Student Assessment (PISA) datasets from 2018 and 2022. The 2022 dataset includes responses from 613{,}744 students across 80 countries and 21{,}629 schools, with global average scores of 441 in mathematics, 438 in reading, and 450 in science. We combine static visual analytics in Python (eight publication-quality charts) with an interactive Power BI dashboard to explore six themes: cross-country performance, gender gaps, the socio-economic gradient, school climate, student well-being, and key drivers of performance. Our analysis confirms three findings of broad importance: East Asian economies dominate the top of the performance distribution; the link between socio-economic status (ESCS) and mathematics performance remained strong and structurally stable between 2018 and 2022; and several student-level wellbeing indicators show only modest correlations with score, suggesting that country-level structural factors drive the bulk of cross-national variation. We also document a counter-intuitive negative correlation between Teacher Support index and math score, which we interpret as a known measurement artifact in PISA. The combination of static and interactive visualization tools enables both scholarly reading and exploratory drill-down by readers.
+\end{abstract}
+
+% =============================================================
+% INTRODUCTION
+% =============================================================
+\section{Introduction}
+\label{sec:intro}
+
+The Programme for International Student Assessment (PISA), administered by the Organisation for Economic Co-operation and Development (OECD), is the largest comparative assessment of fifteen-year-old students worldwide. Every three years, PISA evaluates students in mathematics, reading, and science, and collects rich contextual data on family background, school environment, and student attitudes. The 2022 cycle, the first conducted after the COVID-19 pandemic, is of particular interest because it allows direct comparison with the pre-pandemic 2018 cycle and provides insight into how educational outcomes shifted during a period of unprecedented disruption.
+
+Despite the analytical depth of the underlying data, much public reporting of PISA results focuses on country rankings rather than the multivariate relationships that drive those rankings. Visual analytics offers a way to surface those relationships in forms accessible to educators, policy makers, and the general public. In this work, we use a combination of Python (for static, statistically annotated charts) and Power BI (for an interactive dashboard) to explore six themes that together describe the structural shape of educational outcomes around the world.
+
+The remainder of this report is organized as follows. Section~\ref{sec:problem} formalizes the problem we address. Section~\ref{sec:goal} states our objectives. Section~\ref{sec:method} describes our methodology, including data sources and tools. Section~\ref{sec:metrics} defines the descriptive metrics we report. Section~\ref{sec:results} presents the results, with one figure per theme and a one-to-two-sentence interpretation directly below each figure. Section~\ref{sec:dashboard} describes the interactive Power BI dashboard. Section~\ref{sec:discussion} discusses what worked, what did not, and the limitations of our approach. Section~\ref{sec:conclusion} concludes with directions for future work.
+
+% =============================================================
+% PROBLEM STATEMENT
+% =============================================================
+\section{Problem Statement}
+\label{sec:problem}
+
+Education outcomes are shaped by a complex interaction of student attributes (gender, motivation, anxiety), family background (socio-economic status, parental education), and institutional context (school climate, teacher behavior, digital infrastructure). Although the PISA datasets capture all of these dimensions, the volume and structure of the raw data --- more than 600{,}000 student records spanning over 200 variables in the 2022 cycle --- make it difficult to extract a coherent narrative without targeted visualization.
+
+The problem we address is therefore twofold. First, we ask how to design a small set of complementary visualizations that, taken together, communicate the principal patterns of cross-country variation in performance, the persistence of socio-economic and gender gaps, and the role of student well-being. Second, we ask how to combine a static report (suitable for scholarly reading) with an interactive dashboard (suitable for exploratory drill-down) so that a reader can both follow a fixed argument and explore the underlying data on their own terms.
+
+% =============================================================
+% GOAL
+% =============================================================
+\section{Goal}
+\label{sec:goal}
+
+The goals of this project are:
+\begin{enumerate}
+    \item To produce eight static visualizations in Python that communicate the principal cross-country, gender, socio-economic, school climate, and well-being patterns visible in PISA 2022, with one chart drawing on the 2018 cycle for direct comparison.
+    \item To complement these static charts with an interactive Power BI dashboard that allows readers to filter by country, OECD membership, and other categorical variables.
+    \item To interpret each visualization in the context of established findings about international assessment, identifying both expected results and counter-intuitive ones.
+    \item To document the analysis pipeline, including data preparation choices, in a way that supports reproducibility.
+\end{enumerate}
+
+Success is measured by whether the resulting report (i) covers the six themes stated in the introduction, (ii) provides a defensible interpretation for each figure based on the data rather than received narratives, and (iii) compiles into a coherent ten-page IEEE-format document accompanied by an executable code repository.
+
+% =============================================================
+% METHODOLOGY
+% =============================================================
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Data Sources}
+
+We use two cycles of the PISA Student Questionnaire dataset, both downloaded from the OECD PISA data portal~\cite{oecd_pisa_2022, oecd_pisa_2018}. The 2022 cycle (file \texttt{CY08MSP\_STU\_QQQ}) contains 613{,}744 student records and 1{,}279 raw variables across 80 participating countries and economies. The 2018 cycle (file \texttt{CY07\_MSU\_STU\_QQQ}) contains 606{,}627 student records.
+
+\subsection{Variable Selection and Plausible-Value Aggregation}
+
+PISA reports student achievement using ten plausible values per subject (\texttt{PV1MATH} through \texttt{PV10MATH}, and similarly for reading and science) rather than a single score. This methodology, designed for unbiased population-level estimation, requires care when computing student-level summaries. For descriptive visualization purposes we follow common practice and compute a per-student mean across the ten plausible values for each subject, yielding three composite columns: \texttt{Math\_MeanScore}, \texttt{Reading\_MeanScore}, and \texttt{Science\_MeanScore}.
+
+We retained a curated subset of 223 variables in the 2022 file and 85 in the 2018 file, covering demographic identifiers (country, school, gender), socio-economic indicators (ESCS, parental education, occupational status), school climate measures (Teacher Support index \texttt{TEACHSUP}, Disciplinary Climate \texttt{DISCLIM}), digital access indices (\texttt{ICTHOME}, \texttt{ICTSCH}), and well-being indicators (\texttt{ANXMAT}, \texttt{BELONG}, \texttt{LIFESAT}). Records with missing values in all ten plausible values for a subject were dropped; otherwise we retained the data as-is and let pandas' default \texttt{groupby} behavior handle missingness at the aggregation step.
+
+\subsection{Tools}
+
+The static charts were produced in Python 3.11 using \texttt{pandas}~2.0, \texttt{matplotlib}~3.7, \texttt{seaborn}~0.12, and \texttt{plotly}~5.17 (for the choropleth world map). All charts were saved at 300~DPI in both PNG and PDF format for inclusion in this report. The interactive dashboard was built in Microsoft Power BI Desktop. Source code and figure outputs are available in the accompanying GitHub repository.
+
+\subsection{Analysis Workflow}
+
+Our analysis proceeds in four steps. First, we summarize the global picture (overall counts, average scores, OECD versus non-OECD comparison) using KPI panels in Power BI. Second, we examine country-level performance using bar rankings and a choropleth map. Third, we investigate within-country variation along the dimensions of gender, socio-economic status, school climate, and student well-being. Fourth, we synthesize the relationships among student-level drivers using a correlation matrix.
+
+% =============================================================
+% EXPERIMENT AND METRICS
+% =============================================================
+\section{Experiment and Metrics}
+\label{sec:metrics}
+
+This is a descriptive visual analytics study rather than a predictive modeling study, so the evaluation criteria differ from those used for classification or regression tasks. We report three classes of numerical summaries throughout the results section:
+
+\begin{itemize}
+    \item \textbf{Central tendency}: country-level and group-level mean scores. Because individual student scores derive from ten plausible values, these means are themselves averages of averages and should be interpreted as approximate.
+    \item \textbf{Effect sizes}: for the gender comparison, we report the difference between female and male means in score points (the unit on the PISA scale, where 100 points is approximately one standard deviation).
+    \item \textbf{Association}: for cross-country and student-level relationships, we report Pearson correlation coefficients ($r$) and, where regression lines are shown, the slope and coefficient of determination ($R^{2}$). Correlation magnitudes follow the conventional interpretation of $|r|<0.2$ as weak, $0.2 \le |r| < 0.4$ as moderate, and $|r| \ge 0.4$ as strong.
+\end{itemize}
+
+We do not report inferential statistics (p-values, confidence intervals) because the population sizes involved make almost any difference statistically significant; effect sizes and correlation magnitudes are more informative for educational interpretation.
+
+% =============================================================
+% RESULTS WITH PLOTS (and inline interpretation)
+% =============================================================
+\section{Results with Plots}
+\label{sec:results}
+
+This section presents our eight static visualizations, each with a one-to-two-sentence interpretation immediately following the figure caption.
+
+\subsection{Global Performance Landscape}
+
+Figure~\ref{fig:worldmap} provides a geographic overview of mean mathematics performance across all participating countries in 2022.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{8_world_map.png}
+    \caption{Choropleth world map of mean mathematics score by country, PISA 2022. Darker blue indicates higher performance; darker red indicates lower performance. Grey areas denote countries that did not participate in PISA 2022.}
+    \label{fig:worldmap}
+\end{figure}
+
+\textit{Interpretation.} The map shows a clear geographic structure to mathematics performance: East Asia dominates the top of the distribution, Western Europe, Australia, and Canada sit in the upper-middle range, and Latin America together with parts of the Middle East and North Africa cluster at the lower end. The map also highlights the limited African coverage of PISA, which is an important contextual constraint when generalizing from these data.
+
+\subsection{Top-Performing Countries by Subject}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{1_country_performance.png}
+    \caption{Top fifteen countries by combined average score, with separate bars for mathematics, reading, and science. PISA 2022.}
+    \label{fig:country}
+\end{figure}
+
+\textit{Interpretation.} Singapore leads in all three subjects, followed by Macao, Japan, South Korea, Hong Kong, and Chinese Taipei. The within-country gaps between subjects are small for most top performers (typically under 30 points), suggesting that high-performing systems are broadly competent rather than narrowly specialized.
+
+\subsection{Distribution of Student Scores}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{7_score_distribution.png}
+    \caption{Density distribution of student-level mean scores in mathematics, reading, and science. PISA 2022.}
+    \label{fig:dist}
+\end{figure}
+
+\textit{Interpretation.} All three subject distributions are approximately bell-shaped and broadly overlapping, with a global mode near 425--440 score points. Reading shows a slightly heavier left tail (more very-low scorers), while mathematics has the highest peak. The overall similarity in shape supports treating the three subjects as comparable on the same scale.
+
+\subsection{Gender Gap Across Subjects}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{2_gender_gap_boxplots.png}
+    \caption{Gender comparison of student scores in mathematics, reading, and science. Box plots show the interquartile range and median; the (F$-$M) value is the difference between female and male means in score points. PISA 2022.}
+    \label{fig:gender}
+\end{figure}
+
+\textit{Interpretation.} The gender gap pattern is consistent with prior PISA cycles: girls outperform boys in reading by roughly 25 points (a substantial gap), while boys hold a small advantage in mathematics, and the science gap is essentially negligible. This pattern is one of the most stable findings in the international assessment literature.
+
+\subsection{Socio-Economic Gradient: 2018 Versus 2022}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.85\textwidth]{3_escs_vs_math_2018_2022.png}
+    \caption{Country-level mean ESCS (Economic, Social and Cultural Status) plotted against mean mathematics score, with a linear regression line and 95\% confidence interval. Left: 2018. Right: 2022.}
+    \label{fig:escs}
+\end{figure*}
+
+\textit{Interpretation.} The slope of the ESCS-mathematics relationship is essentially unchanged between 2018 (slope $=70.6$) and 2022 (slope $=72.5$), indicating that the structural socio-economic gradient was remarkably stable across the pandemic. However, the coefficient of determination rose from $R^{2}=0.44$ to $R^{2}=0.51$, meaning that ESCS became a more consistent predictor of country-level performance, with less unexplained between-country variation.
+
+\subsection{School Climate Indicators}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{4_school_climate.png}
+    \caption{Country-level relationship between two school climate indicators (Teacher Support and Disciplinary Climate) and mean mathematics score. Each point is one country. PISA 2022.}
+    \label{fig:climate}
+\end{figure}
+
+\textit{Interpretation.} Disciplinary Climate shows the expected positive relationship with mathematics performance ($r=0.27$), consistent with the intuition that orderly classrooms support learning. The Teacher Support index, however, shows a strong \emph{negative} country-level correlation ($r=-0.56$). This is a known measurement artifact: in struggling education systems, students report higher rates of teacher help-giving, while high-performing East Asian systems are characterized by more independent learning. We discuss this further in Section~\ref{sec:discussion}.
+
+\subsection{Student Well-Being and Performance}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{5_wellbeing_quadrant.png}
+    \caption{Country-level mathematics anxiety index plotted against mean mathematics score. Dashed lines show the median on each axis, dividing countries into four quadrants. PISA 2022.}
+    \label{fig:wellbeing}
+\end{figure}
+
+\textit{Interpretation.} High-performing countries are split between the upper-left quadrant (low anxiety, high score, e.g.\ Switzerland, Estonia, Czechia) and the upper-middle/upper-right (moderate-to-high anxiety with high score, e.g.\ Singapore, Macao, Japan, South Korea). Most low-performing countries cluster in the lower-right (high anxiety, low score, e.g.\ Guatemala, El Salvador, Paraguay, Brunei). Anxiety is therefore not deterministic of low performance, but high anxiety combined with low performance is the most common outcome among struggling systems.
+
+\subsection{Drivers of Performance: Correlation Heatmap}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{6_correlation_heatmap.png}
+    \caption{Pearson correlation matrix between student-level drivers and the three subject scores. PISA 2022.}
+    \label{fig:heatmap}
+\end{figure}
+
+\textit{Interpretation.} The strongest single predictor of student performance is socio-economic status (ESCS), with correlations of approximately $0.40$--$0.43$ to all three subject scores. Math anxiety is the strongest negative correlate of mathematics ($r=-0.25$). The three subject scores themselves correlate at $0.86$--$0.92$, indicating that performance is largely a general competence rather than subject-specific. Student-level motivation, belonging, and reported teacher support show only weak associations with score, reinforcing the conclusion that structural factors (ESCS, schooling system) outweigh self-reported attitudes at the individual level.
+
+% =============================================================
+% POWER BI DASHBOARD
+% =============================================================
+\section{Power BI Dashboard}
+\label{sec:dashboard}
+
+To complement the static charts in Section~\ref{sec:results}, we built an interactive dashboard in Microsoft Power BI. The dashboard supports filtering by country and OECD membership and presents the key descriptive statistics on a single screen.
+
+\subsection{Global Counts and Average Scores}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{KPI_-_Count_and_SCore.png}
+    \caption{Power BI KPI panel: global counts of countries, schools, and students in PISA 2022, with global mean scores in mathematics, reading, and science.}
+    \label{fig:kpi1}
+\end{figure}
+
+\textit{Interpretation.} The 2022 cycle covers 80 countries, 21{,}629 schools, and 613{,}744 students. Global mean scores are 441 in mathematics, 438 in reading, and 450 in science. These KPIs anchor the rest of the analysis and provide reference values against which country-level performance is benchmarked.
+
+\subsection{OECD Versus Non-OECD Comparison}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{KPI_-_OCED_vs_NonOCED.png}
+    \caption{Power BI panel comparing OECD member countries (37 countries) and non-OECD participants (43 countries) on three indicators: home internet and computer access, school ICT availability, and the Economic, Social, and Cultural Status (ESCS) index.}
+    \label{fig:kpi2}
+\end{figure}
+
+\textit{Interpretation.} Across all three indicators, OECD member countries show higher levels of digital access and socio-economic status than non-OECD participants. Home digital access (5.68 vs.\ 5.41) and school ICT availability (6.39 vs.\ 5.95) show modest but consistent gaps, while the ESCS gap is large: the average non-OECD economic index is $-0.61$, more than half a standard deviation below the OECD average of $+0.03$. This confirms that the OECD/non-OECD divide remains a meaningful structural cleavage in the data.
+
+\subsection{Interactivity}
+
+The dashboard supports country slicers and OECD membership toggles that propagate across all visuals, allowing the reader to compare any subset of countries on any indicator. This interactivity is the principal advantage of the dashboard over static charts. % [INSERT 3RD SCREENSHOT HERE IF AVAILABLE: e.g. a chart with a country slicer applied]
+
+% =============================================================
+% DISCUSSION
+% =============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What Worked}
+
+The combination of a static IEEE-format report with an interactive Power BI dashboard turned out to be effective. The static charts allowed precise statistical annotation (slopes, $R^{2}$ values, effect sizes), which is difficult to render cleanly in Power BI. The dashboard, in turn, provides drill-down by country and OECD membership that the static charts cannot. We found that designing the two channels to be complementary rather than redundant was important: the choropleth map (Fig.~\ref{fig:worldmap}) is best as a static figure for the report, while the OECD comparison panel (Fig.~\ref{fig:kpi2}) is best as a Power BI KPI block.
+
+\subsection{What Did Not Work as Expected}
+
+Two findings ran counter to the narrative we initially planned. First, the project plan anticipated that the socio-economic gradient (Fig.~\ref{fig:escs}) would have widened between 2018 and 2022 as a result of pandemic-related disruption. Our analysis shows that the slope was essentially stable; what changed was the consistency of the relationship ($R^{2}$ rose from $0.44$ to $0.51$). We retained the honest finding rather than the original expectation.
+
+Second, the country-level Teacher Support index correlates negatively with mathematics score (Fig.~\ref{fig:climate}). At first glance, this looks wrong. The accepted interpretation in the PISA literature is that students in struggling education systems report receiving more teacher help (because they need it), while students in high-performing systems --- particularly East Asian ones --- report less help-giving but score higher. The Teacher Support index therefore measures perceived helping behavior, not teaching quality. This is a useful illustration of why correlations between self-reported indices and outcome measures must be interpreted carefully.
+
+\subsection{Limitations}
+
+Our work has several limitations. First, PISA coverage of African countries is sparse, and our world map (Fig.~\ref{fig:worldmap}) shows large grey regions accordingly. Generalizations to "the world" should therefore be read as "the PISA-participating world." Second, we used the per-student mean across the ten plausible values, which simplifies the analysis but loses the variance information that PISA's plausible-value methodology is designed to preserve; for population-level estimates this is acceptable, but it should not be used for inferential statistics. Third, all wellbeing and climate measures are self-reported and subject to cultural response style differences, which complicates direct cross-country comparison.
+
+% =============================================================
+% CONCLUSION AND FUTURE WORK
+% =============================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+This project demonstrates that a small, carefully chosen set of visualizations --- eight static charts plus an interactive dashboard --- can communicate the principal patterns of cross-national educational outcomes in a way that respects both descriptive accuracy and the constraints of the underlying measurement methodology. The headline findings are: East Asian economies dominate the top of the performance distribution; the socio-economic gradient is strong and structurally stable across the pandemic; gender gaps in reading remain substantial while science gaps have effectively closed; and student-level wellbeing measures correlate with performance only modestly.
+
+For future work, three directions are natural extensions. First, a within-country quartile analysis (top versus bottom ESCS quartile) could test whether the COVID disruption widened gaps at the student level even though the country-level slope was stable. Second, the negative Teacher Support correlation invites a multilevel modeling approach that separates within-country and between-country variation. Third, the dashboard could be extended to include time-series comparison across all PISA cycles since 2000, which would situate the 2022 results in a longer-run context.
+
+% =============================================================
+% REFERENCES
+% =============================================================
+\begin{thebibliography}{9}
+
+\bibitem{oecd_pisa_2022}
+OECD, \emph{PISA 2022 Results (Volume I): The State of Learning and Equity in Education}. Paris: OECD Publishing, 2023.
+
+\bibitem{oecd_pisa_2018}
+OECD, \emph{PISA 2018 Results (Volume I): What Students Know and Can Do}. Paris: OECD Publishing, 2019.
+
+\bibitem{oecd_technical}
+OECD, \emph{PISA 2022 Technical Report}. Paris: OECD Publishing, 2024.
+
+\bibitem{pandas}
+W.~McKinney, ``Data Structures for Statistical Computing in Python,'' in \emph{Proc.\ 9th Python in Science Conf.}, 2010, pp.\ 56--61.
+
+\bibitem{matplotlib}
+J.~D.~Hunter, ``Matplotlib: A 2D Graphics Environment,'' \emph{Computing in Science \& Engineering}, vol.\ 9, no.\ 3, pp.\ 90--95, 2007.
+
+\bibitem{seaborn}
+M.~L.~Waskom, ``seaborn: statistical data visualization,'' \emph{Journal of Open Source Software}, vol.\ 6, no.\ 60, p.\ 3021, 2021.
+
+\bibitem{plotly}
+Plotly Technologies Inc., \emph{Collaborative data science}. Montreal, QC: Plotly Technologies Inc., 2015. [Online]. Available: \url{https://plot.ly}
+
+\end{thebibliography}
+
+\end{document}
